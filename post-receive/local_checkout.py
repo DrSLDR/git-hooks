@@ -11,24 +11,26 @@ import subprocess
 import sys
 
 # Configs
-LOCALDIR = os.path.abspath('/path/to/git/repo')
+LOCALDIR = os.path.abspath('/path/to/.git')
 BRANCH = 'master'
 REMOTE = 'origin'
 
 # Set working directory (redundantly)
 os.chdir(LOCALDIR)
+os.environ['GIT_WORK_TREE'] = os.path.dirname(LOCALDIR)
 
 # Fetch relevant data
-if not subprocess.call(['git', 'fetch', REMOTE, BRANCH], cwd=LOCALDIR,
-                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL):
-    print('post-receive: FATAL: could not fetch')
+COMMAND = ['git', 'fetch', REMOTE, BRANCH]
+OUT = subprocess.call(COMMAND, cwd=LOCALDIR, stderr=subprocess.DEVNULL)
+if not OUT == 0:
+    print('post-receive: FATAL: could not fetch (%s)' % OUT)
     sys.exit(1)
 
 # Merge into local
-if not subprocess.call(['git', 'checkout', '-f', REMOTE + '/' + BRANCH],
-                       cwd=LOCALDIR, stdout=subprocess.DEVNULL,
-                       stderr=subprocess.DEVNULL):
-    print('post-receive: FATAL: could not merge')
+COMMAND = ['git', 'checkout', '-f', REMOTE + '/' + BRANCH]
+OUT = subprocess.call(COMMAND, cwd=LOCALDIR, stderr=subprocess.DEVNULL)
+if not OUT == 0:
+    print('post-receive: FATAL: could not check out (%s)' % OUT)
     sys.exit(2)
 
 # Report back
