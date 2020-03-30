@@ -9,6 +9,7 @@ passed = True
 dhall_pattern = re.compile(r'.*\.dhall$')
 
 dhall_files = []
+temt_files = []
 maxlen = 0
 
 def dhall_check(keyword, dhall_file):
@@ -43,7 +44,13 @@ for dhall_file in dhall_files:
     diff = maxlen - len(dhall_file)
     printstr = "Checking " + dhall_file + '...' + ' '*(diff + 2)
     errlist = []
-    # Inject index-checkout here
+    done_process = subprocess.run(
+        ['git', 'checkout-index', '--temp', dhall_file],
+        stdout=subprocess.PIPE
+    )
+    alias = done_process.stdout.decode('utf-8')
+    dhall_file = alias.split('\t')[0]
+    temt_files.append(dhall_file)
     if dhall_format(dhall_file) != 0:
         errlist.append("FORMAT")
     if dhall_lint(dhall_file) != 0:
@@ -55,6 +62,9 @@ for dhall_file in dhall_files:
         printstr += "ERROR " + " ".join(errlist)
         passed = False
     print(printstr)
+
+for temp_file in temt_files:
+    os.remove(temp_file)
 
 if not passed:
     print("Commit refused by pre-commit hook. Dhall files unformatted.")
