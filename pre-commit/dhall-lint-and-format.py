@@ -11,7 +11,24 @@ dhall_pattern = re.compile(r'.*\.dhall$')
 dhall_files = []
 maxlen = 0
 
-done_process = subprocess.run(['git', 'status', '--porcelain'], stdout=subprocess.PIPE)
+def dhall_check(keyword, dhall_file):
+    done_process = subprocess.run(['dhall', keyword, '--check',
+                                    '--inplace', dhall_file],
+                                    stdout=subprocess.DEVNULL,
+                                    stderr=subprocess.DEVNULL)
+    return done_process.returncode
+
+
+def dhall_format(dhall_file):
+    return dhall_check('format', dhall_file)
+
+
+def dhall_lint(dhall_file):
+    return dhall_check('lint', dhall_file)
+
+done_process = subprocess.run(
+    ['git', 'status', '--porcelain'],
+    stdout=subprocess.PIPE)
 status = done_process.stdout.decode('utf-8')
 for line in status.split('\n'):
     line_length = len(line)
@@ -26,17 +43,10 @@ for dhall_file in dhall_files:
     diff = maxlen - len(dhall_file)
     printstr = "Checking " + dhall_file + '...' + ' '*(diff + 2)
     errlist = []
-    done_process = subprocess.run(['dhall', 'format', '--check', 
-                                    '--inplace', dhall_file],
-                                    stdout=subprocess.DEVNULL,
-                                    stderr=subprocess.DEVNULL)
-    if done_process.returncode != 0:
+    # Inject index-checkout here
+    if dhall_format(dhall_file) != 0:
         errlist.append("FORMAT")
-    done_process = subprocess.run(['dhall', 'lint', '--check', 
-                                    '--inplace', dhall_file],
-                                    stdout=subprocess.DEVNULL,
-                                    stderr=subprocess.DEVNULL)
-    if done_process.returncode != 0:
+    if dhall_lint(dhall_file) != 0:
         errlist.append("LINTER")
     
     if len(errlist) == 0:
